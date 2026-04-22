@@ -27,9 +27,9 @@ The project is fully optimized and deployment-ready. For production environments
 
 **Build Command**:
 ```bash
-npm run build
+npm install && npm run build
 ```
-*This command generates an optimized production build in the `.next` directory.*
+*This command installs dependencies and generates an optimized production build in the `.next` directory. On platforms like Render, you MUST include `npm install` before the build command.*
 
 **Start Command**:
 ```bash
