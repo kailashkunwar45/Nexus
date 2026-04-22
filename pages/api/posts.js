@@ -139,12 +139,31 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
-    const {id} = req.query;
-    const post = await Post.findById(id);
-    if (post.author.toString() !== session.user.id) {
-      return res.status(403).json({message: 'Not authorized'});
+    try {
+      const {id} = req.query;
+      const post = await Post.findById(id);
+      if (!post) {
+        return res.status(404).json({message: 'Post not found'});
+      }
+      if (post.author.toString() !== session.user.id) {
+        return res.status(403).json({message: 'Not authorized'});
+      }
+      
+      const parentId = post.parent;
+      await Post.findByIdAndDelete(id);
+      
+      if (parentId) {
+        const parentPost = await Post.findById(parentId);
+        if (parentPost) {
+          parentPost.commentsCount = await Post.countDocuments({parent: parentId});
+          await parentPost.save();
+        }
+      }
+      
+      res.json('ok');
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({message: 'Server error'});
     }
-    await Post.findByIdAndDelete(id);
-    res.json('ok');
   }
 }

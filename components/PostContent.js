@@ -42,8 +42,12 @@ export default function PostContent({
 
   async function handleDelete() {
     if (confirm("Are you sure you want to delete this post?")) {
-      await axios.delete(`/api/posts?id=${_id}`);
-      if (onUpdate) onUpdate();
+      try {
+        await axios.delete(`/api/posts?id=${_id}`);
+        if (onUpdate) onUpdate();
+      } catch (e) {
+        alert(e.response?.data?.message || 'Error deleting post');
+      }
     }
   }
 
@@ -161,7 +165,7 @@ export default function PostContent({
               <div className="mt-4 space-y-2">
                 {comments.length > 0 ? comments.map(comment => (
                   <div key={comment._id} className="border-t border-nexusBorder first:border-t-0">
-                    <PostContent {...comment} isComment={true} />
+                    <PostContent {...comment} isComment={true} onUpdate={fetchComments} />
                   </div>
                 )) : (
                   <div className="text-center text-nexusLightGray text-xs py-4">No comments yet</div>
