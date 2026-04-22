@@ -1,7 +1,10 @@
 import EditableImage from "./EditableImage";
 
-export default function Avatar({src,big,onChange,editable=false}) {
-  const widthClass = big ? 'w-24' : 'w-12';
+export default function Avatar({src,big,onChange,editable=false,size='md'}) {
+  let widthClass = 'w-12';
+  if (big) widthClass = 'w-24';
+  if (size === 'sm') widthClass = 'w-8';
+  if (size === 'lg') widthClass = 'w-16';
 
   return (
     <div className='rounded-full overflow-hidden'>
