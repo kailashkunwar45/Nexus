@@ -16,7 +16,7 @@ export default function LoginPage({providers}) {
         <img src="/logo.png" alt="Nexus Logo" className="h-24 w-24 object-contain rounded-2xl shadow-[0_0_30px_rgba(99,102,241,0.6)]" />
       </div>
       <h1 className="text-3xl font-bold mb-8 text-white">Join Nexus Today</h1>
-      {Object.values(providers).map(provider => (
+      {providers && Object.values(providers).map(provider => (
         <div key={provider.id}>
           <button onClick={async () => {await signIn(provider.id)}} className="bg-nexusWhite pl-3 pr-5 py-2 text-black rounded-full flex items-center shadow-lg hover:shadow-xl transition-shadow">
             <img src="/google.png" alt="" className="h-8"/>
@@ -24,6 +24,12 @@ export default function LoginPage({providers}) {
           </button>
         </div>
       ))}
+      {!providers && (
+        <div className="text-nexusLightGray text-center mt-4 bg-nexusBorder p-4 rounded-xl max-w-sm">
+          <p>Authentication providers are not configured.</p>
+          <p className="text-sm mt-2">Please add <code className="bg-nexusDarkGray px-1 py-0.5 rounded">GOOGLE_CLIENT_ID</code> and <code className="bg-nexusDarkGray px-1 py-0.5 rounded">GOOGLE_CLIENT_SECRET</code> to your <code className="bg-nexusDarkGray px-1 py-0.5 rounded">.env</code> file.</p>
+        </div>
+      )}
     </div>
   );
 }
