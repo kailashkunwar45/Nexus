@@ -141,10 +141,16 @@ export default async function handler(req, res) {
   if (req.method === 'DELETE') {
     try {
       const {id} = req.query;
+      console.log('DELETE request for id:', id);
+      console.log('Session user id:', session.user.id);
+      
       const post = await Post.findById(id);
       if (!post) {
         return res.status(404).json({message: 'Post not found'});
       }
+      
+      console.log('Post author id:', post.author.toString());
+      
       if (post.author.toString() !== session.user.id) {
         return res.status(403).json({message: 'Not authorized'});
       }

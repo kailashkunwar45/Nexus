@@ -38,7 +38,8 @@ export default function PostContent({
     setShowComments(!showComments);
   }
 
-  const isMyPost = author?._id === userInfo?._id;
+  const authorId = author?._id || author;
+  const isMyPost = authorId?.toString() === userInfo?._id?.toString();
 
   async function handleDelete() {
     if (confirm("Are you sure you want to delete this post?")) {
