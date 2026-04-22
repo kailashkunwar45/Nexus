@@ -12,24 +12,28 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PUT') {
-    const {bio, name, username, dob, phone, gender, onboarded} = req.body;
-    
-    // Check if username is already taken by another user
-    if (username) {
-      const existingUser = await User.findOne({username});
-      if (existingUser && existingUser._id.toString() !== session.user.id) {
-        return res.status(400).json({message: 'Username already taken'});
+    try {
+      const {bio, name, username, dob, phone, gender, onboarded} = req.body;
+      
+      if (username) {
+        const existingUser = await User.findOne({username});
+        if (existingUser && existingUser._id.toString() !== session.user.id) {
+          return res.status(400).json({message: 'Username already taken'});
+        }
       }
+
+      const updateData = {bio, name, username};
+      if (dob) updateData.dob = dob;
+      if (phone) updateData.phone = phone;
+      if (gender) updateData.gender = gender;
+      if (onboarded !== undefined) updateData.onboarded = onboarded;
+
+      await User.findByIdAndUpdate(session.user.id, updateData);
+      return res.json('ok');
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({message: 'Server error', error: e.message});
     }
-
-    const updateData = {bio, name, username};
-    if (dob) updateData.dob = dob;
-    if (phone) updateData.phone = phone;
-    if (gender) updateData.gender = gender;
-    if (onboarded !== undefined) updateData.onboarded = onboarded;
-
-    await User.findByIdAndUpdate(session.user.id, updateData);
-    return res.json('ok');
   }
 
   res.status(405).json({message: 'Method not allowed'});

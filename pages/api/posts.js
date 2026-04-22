@@ -105,17 +105,26 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PUT') {
-    const {id, text} = req.body;
-    const post = await Post.findById(id);
-    if (post.author.toString() !== session.user.id) {
-      return res.status(403).json({message: 'Not authorized'});
+    try {
+      const {id, text} = req.body;
+      if (!id) return res.status(400).json({message: 'Missing post ID'});
+      
+      const post = await Post.findById(id);
+      if (!post) return res.status(404).json({message: 'Post not found'});
+      
+      if (post.author.toString() !== session.user.id) {
+        return res.status(403).json({message: 'Not authorized'});
+      }
+      if (!text?.trim()) {
+        return res.status(400).json({message: 'Post cannot be empty'});
+      }
+      post.text = text;
+      await post.save();
+      res.json(post);
+    } catch (e) {
+      console.error(e);
+      res.status(500).json({message: 'Server error', error: e.message});
     }
-    if (!text?.trim()) {
-      return res.status(400).json({message: 'Post cannot be empty'});
-    }
-    post.text = text;
-    await post.save();
-    res.json(post);
   }
 
   if (req.method === 'DELETE') {

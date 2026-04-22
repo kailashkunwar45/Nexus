@@ -28,9 +28,13 @@ export default function PostContent({
   }
 
   async function handleUpdate() {
-    await axios.put('/api/posts', { id: _id, text });
-    setIsEditing(false);
-    if (onUpdate) onUpdate();
+    try {
+      await axios.put('/api/posts', { id: _id, text });
+      setIsEditing(false);
+      if (onUpdate) onUpdate();
+    } catch (e) {
+      alert(e.response?.data?.message || 'Error updating post');
+    }
   }
 
   function showImages() {

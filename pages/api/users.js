@@ -23,7 +23,19 @@ export default async function handle(req, res) {
       source:session.user.id,
       destination:user._id
     });
-    res.json({user,follow});
+    
+    // Check block status
+    let isBlocked = false;
+    if (session) {
+      const Block = mongoose.models.Block || mongoose.model('Block');
+      const blockDoc = await Block.findOne({
+        source: session.user.id,
+        destination: user._id
+      });
+      isBlocked = !!blockDoc;
+    }
+
+    res.json({user,follow,isBlocked});
   }
 
 }
