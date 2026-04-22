@@ -53,7 +53,7 @@ export default async function handler(req, res) {
           author: { $nin: blockedIds } // Filter out blocked users
         };
       } else if (author) {
-        searchFilter = {author, parent: null};
+        searchFilter = {author};
         if (blockedIds.some(bid => bid.toString() === author)) {
           return res.json({posts: [], idsLikedByMe: []});
         }

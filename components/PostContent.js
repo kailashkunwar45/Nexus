@@ -9,7 +9,7 @@ import useUserInfo from "../hooks/useUserInfo";
 export default function PostContent({
   text: initialText, author, createdAt, _id,
   likesCount, likedByMe, commentsCount,
-  images,
+  images, parent,
   big = false,
   onUpdate
 }) {
@@ -89,6 +89,12 @@ export default function PostContent({
               </div>
             )}
           </div>
+
+          {parent && (
+            <div className="text-nexusLightGray text-sm mt-1 mb-1">
+              Replying to <Link href={`/${parent.author?.username || ''}`}><span className="text-nexusAccent cursor-pointer hover:underline">@{parent.author?.username}</span></Link>
+            </div>
+          )}
 
           <div className="mt-1">
             {isEditing ? (
