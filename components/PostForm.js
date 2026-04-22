@@ -12,6 +12,7 @@ export default function PostForm({onPost,compact,parent,placeholder='What\'s hap
 
   async function handlePostSubmit(e) {
     e.preventDefault();
+    if (!text.trim() && images.length === 0) return;
     await axios.post('/api/posts', {text,parent,images});
     setText('');
     setImages([]);
@@ -54,13 +55,23 @@ export default function PostForm({onPost,compact,parent,placeholder='What\'s hap
           )}</Upload>
           {!compact && (
             <div className="text-right border-t border-nexusBorder pt-2 pb-2">
-              <button className="bg-nexusAccent text-white px-5 py-1 rounded-full">Tweet</button>
+              <button 
+                disabled={!text.trim() && images.length === 0}
+                className="bg-nexusAccent text-white px-5 py-1 rounded-full disabled:opacity-50"
+              >
+                Tweet
+              </button>
             </div>
           )}
         </div>
         {compact && (
           <div className="pl-2">
-            <button className="bg-nexusAccent text-white px-5 py-1 rounded-full">Tweet</button>
+            <button 
+              disabled={!text.trim() && images.length === 0}
+              className="bg-nexusAccent text-white px-5 py-1 rounded-full disabled:opacity-50"
+            >
+              Tweet
+            </button>
           </div>
         )}
       </div>

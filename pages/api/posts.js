@@ -4,10 +4,23 @@ import {unstable_getServerSession} from "next-auth";
 import {authOptions} from "./auth/[...nextauth]";
 import Like from "../../models/Like";
 import Follower from "../../models/Follower";
+import Block from "../../models/Block";
 
 export default async function handler(req, res) {
   await initMongoose();
-  const session = await unstable_getServerSession(req,res,authOptions);
+  const session = await unstable_getServerSession(req, res, authOptions);
+
+  if (!session) {
+    return res.status(401).json({message: 'Not authenticated'});
+  }
+
+  // Get people I blocked and people who blocked me
+  const blockedByMe = await Block.find({source: session.user.id});
+  const blockedMe = await Block.find({destination: session.user.id});
+  const blockedIds = [
+    ...blockedByMe.map(b => b.destination),
+    ...blockedMe.map(b => b.source)
+  ];
 
   if (req.method === 'GET') {
     const {id} = req.query;
@@ -18,22 +31,35 @@ export default async function handler(req, res) {
           path: 'parent',
           populate: 'author',
         });
+      
+      // Check if author is blocked
+      if (blockedIds.some(bid => bid.toString() === post.author._id.toString())) {
+        return res.status(404).json({message: 'Post not found'});
+      }
+      
       res.json({post});
     } else {
       const parent = req.query.parent || null;
       const author = req.query.author;
       let searchFilter;
+      
       if (!author && !parent) {
-        const myFollows = await Follower.find({source:session.user.id}).exec();
+        const myFollows = await Follower.find({source: session.user.id}).exec();
         const idsOfPeopleIFollow = myFollows.map(f => f.destination);
-        searchFilter = {author:[...idsOfPeopleIFollow,session.user.id]};
+        searchFilter = {
+          author: [...idsOfPeopleIFollow, session.user.id],
+          parent: null,
+          author: { $nin: blockedIds } // Filter out blocked users
+        };
+      } else if (author) {
+        searchFilter = {author, parent: null};
+        if (blockedIds.some(bid => bid.toString() === author)) {
+          return res.json({posts: [], idsLikedByMe: []});
+        }
+      } else if (parent) {
+        searchFilter = {parent, author: { $nin: blockedIds }};
       }
-      if (author) {
-        searchFilter = {author};
-      }
-      if (parent) {
-        searchFilter = {parent};
-      }
+      
       const posts = await Post.find(searchFilter)
         .populate('author')
         .populate({
@@ -61,6 +87,9 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const {text,parent,images} = req.body;
+    if (!text?.trim() && (!images || images.length === 0)) {
+      return res.status(400).json({message: 'Post cannot be empty'});
+    }
     const post = await Post.create({
       author:session.user.id,
       text,
@@ -73,5 +102,29 @@ export default async function handler(req, res) {
       await parentPost.save();
     }
     res.json(post);
+  }
+
+  if (req.method === 'PUT') {
+    const {id, text} = req.body;
+    const post = await Post.findById(id);
+    if (post.author.toString() !== session.user.id) {
+      return res.status(403).json({message: 'Not authorized'});
+    }
+    if (!text?.trim()) {
+      return res.status(400).json({message: 'Post cannot be empty'});
+    }
+    post.text = text;
+    await post.save();
+    res.json(post);
+  }
+
+  if (req.method === 'DELETE') {
+    const {id} = req.query;
+    const post = await Post.findById(id);
+    if (post.author.toString() !== session.user.id) {
+      return res.status(403).json({message: 'Not authorized'});
+    }
+    await Post.findByIdAndDelete(id);
+    res.json('ok');
   }
 }

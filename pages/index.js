@@ -36,8 +36,9 @@ export default function Home() {
     return 'loading user info';
   }
 
-  if (userInfo && !userInfo?.username) {
-    return <UsernameForm />;
+  if (userInfo && !userInfo?.onboarded) {
+    router.push('/onboarding');
+    return null;
   }
 
   if (!userInfo) {
@@ -61,15 +62,10 @@ export default function Home() {
                 </div>
               </div>
             )}
-            <PostContent {...post} likedByMe={idsLikedByMe.includes(post._id)} />
+            <PostContent {...post} likedByMe={idsLikedByMe.includes(post._id)} onUpdate={fetchHomePosts} />
           </div>
         ))}
       </div>
-      {userInfo && (
-        <div className="p-5 text-center border-t border-nexusBorder">
-          <button onClick={logout} className="bg-nexusWhite text-black px-5 py-2 rounded-full">Logout</button>
-        </div>
-      )}
     </Layout>
   )
 }
