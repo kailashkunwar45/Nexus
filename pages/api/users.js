@@ -4,6 +4,7 @@ import User from "../../models/User";
 import {unstable_getServerSession} from "next-auth";
 import {authOptions} from "./auth/[...nextauth]";
 import Follower from "../../models/Follower";
+import FollowRequest from "../../models/FollowRequest";
 
 export default async function handle(req, res) {
   await initMongoose();
@@ -35,7 +36,18 @@ export default async function handle(req, res) {
       isBlocked = !!blockDoc;
     }
 
-    res.json({user,follow,isBlocked});
+    // Check follow request status
+    let isRequested = false;
+    if (session) {
+      const reqDoc = await FollowRequest.findOne({
+        source: session.user.id,
+        destination: user._id,
+        status: 'pending'
+      });
+      isRequested = !!reqDoc;
+    }
+
+    res.json({user,follow,isBlocked,isRequested});
   }
 
 }

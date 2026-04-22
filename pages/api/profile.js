@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'PUT') {
     try {
-      const {bio, name, username, dob, phone, gender, onboarded} = req.body;
+      const {bio, name, username, dob, phone, gender, onboarded, isPrivate} = req.body;
       
       if (username) {
         const existingUser = await User.findOne({username});
@@ -27,6 +27,7 @@ export default async function handler(req, res) {
       if (phone) updateData.phone = phone;
       if (gender) updateData.gender = gender;
       if (onboarded !== undefined) updateData.onboarded = onboarded;
+      if (isPrivate !== undefined) updateData.isPrivate = isPrivate;
 
       await User.findByIdAndUpdate(session.user.id, updateData);
       return res.json('ok');

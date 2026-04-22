@@ -12,6 +12,7 @@ const UserSchema = new Schema({
   phone: String,
   gender: String,
   onboarded: {type: Boolean, default: false},
+  isPrivate: {type: Boolean, default: false},
 });
 
 const User = models?.User || model('User', UserSchema);

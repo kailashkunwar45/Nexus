@@ -19,6 +19,7 @@ export default function UserPage() {
   const [editMode,setEditMode] = useState(false);
   const [isFollowing,setIsFollowing] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [isRequested, setIsRequested] = useState(false);
 
   useEffect(() => {
     if (!username) return;
@@ -31,13 +32,13 @@ export default function UserPage() {
         setProfileInfo(response.data.user);
         setOriginalUserInfo(response.data.user);
         setIsFollowing(!!response.data.follow);
+        setIsBlocked(!!response.data.isBlocked);
       })
   }
 
   useEffect(() => {
     if (!profileInfo?._id) return;
     fetchPosts();
-    checkBlock();
   }, [profileInfo]);
 
   function fetchPosts() {
@@ -48,12 +49,7 @@ export default function UserPage() {
       })
   }
 
-  function checkBlock() {
-    axios.get('/api/block').then(res => {
-      const blocked = res.data.some(b => b.destination === profileInfo._id);
-      setIsBlocked(blocked);
-    });
-  }
+
 
   function updateUserImage(type, src) {
     setProfileInfo(prev => ({...prev,[type]:src}));
@@ -61,9 +57,9 @@ export default function UserPage() {
 
   async function updateProfile() {
     try {
-      const {bio,name,username,dob,phone,gender} = profileInfo;
+      const {bio,name,username,dob,phone,gender,isPrivate} = profileInfo;
       await axios.put('/api/profile', {
-        bio,name,username,dob,phone,gender
+        bio,name,username,dob,phone,gender,isPrivate
       });
       setEditMode(false);
     } catch (e) {
@@ -76,9 +72,18 @@ export default function UserPage() {
     setEditMode(false);
   }
 
-  function toggleFollow() {
-    setIsFollowing(prev => !prev);
-    axios.post('/api/followers', { destination: profileInfo?._id });
+  async function toggleFollow() {
+    const res = await axios.post('/api/followers', { destination: profileInfo?._id });
+    if (res.data.status === 'followed') {
+      setIsFollowing(true);
+      setIsRequested(false);
+    } else if (res.data.status === 'requested') {
+      setIsFollowing(false);
+      setIsRequested(true);
+    } else if (res.data.status === 'unfollowed' || res.data.status === 'request_cancelled') {
+      setIsFollowing(false);
+      setIsRequested(false);
+    }
   }
 
   async function toggleBlock() {
@@ -107,18 +112,18 @@ export default function UserPage() {
             </div>
             <div className="p-2 flex space-x-2">
               {!isMyProfile && (
-                <>
-                  <button onClick={toggleBlock}
-                          className={(isBlocked ? 'bg-red-500 text-white' : 'border border-nexusLightGray text-white')+" py-2 px-5 rounded-full text-sm font-bold"}>
-                    {isBlocked ? 'Blocked' : 'Block'}
-                  </button>
+                <div className="flex space-x-2">
                   {!isBlocked && (
                     <button onClick={toggleFollow}
-                            className={(isFollowing ? 'bg-white text-black' : 'bg-nexusAccent text-white')+" py-2 px-5 rounded-full text-sm font-bold"}>
-                      {isFollowing ? 'Following' : 'Follow'}
+                            className={(isFollowing ? 'bg-nexusWhite text-black' : isRequested ? 'bg-nexusBorder text-nexusLightGray' : 'bg-nexusAccent text-white')+" py-2 px-5 rounded-full font-bold"}>
+                      {isFollowing ? 'Following' : isRequested ? 'Requested' : 'Follow'}
                     </button>
                   )}
-                </>
+                  <button onClick={toggleBlock}
+                          className={(isBlocked ? 'bg-red-600 text-white' : 'bg-nexusBorder text-white hover:bg-red-600')+" py-2 px-5 rounded-full font-bold transition-colors"}>
+                    {isBlocked ? 'Blocked' : 'Block'}
+                  </button>
+                </div>
               )}
               {isMyProfile && (
                 <div>
@@ -185,7 +190,7 @@ export default function UserPage() {
                             onChange={ev => setProfileInfo(prev => ({...prev,bio:ev.target.value}))}
                             className="w-full bg-nexusDarkGray border border-nexusBorder p-2 rounded-xl text-white h-24"  />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 mt-4">
                   <div>
                     <label className="text-nexusLightGray text-xs">Phone</label>
                     <input type="text" value={profileInfo.phone || ''}
@@ -203,17 +208,37 @@ export default function UserPage() {
                     </select>
                   </div>
                 </div>
+                <div className="mt-4 flex items-center justify-between bg-nexusBorder p-3 rounded-xl">
+                  <div>
+                    <span className="text-sm font-bold text-white block">Private Account</span>
+                    <span className="text-xs text-nexusLightGray">Only followers can see your posts.</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={profileInfo.isPrivate || false} onChange={ev => setProfileInfo(prev => ({...prev, isPrivate: ev.target.checked}))} />
+                    <div className="w-11 h-6 bg-nexusDarkGray peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-nexusAccent"></div>
+                  </label>
+                </div>
               </div>
             )}
           </div>
 
           <div className="mt-6">
-            {posts?.length > 0 ? posts.map(post => (
+            {!isMyProfile && profileInfo.isPrivate && !isFollowing ? (
+              <div className="p-10 text-center border-t border-nexusBorder">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-nexusBorder mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-nexusLightGray">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-xl">This account is private</h3>
+                <p className="text-nexusLightGray text-sm mt-1">Follow to see their posts.</p>
+              </div>
+            ) : posts?.length > 0 ? posts.map(post => (
               <div className="p-5 border-t border-nexusBorder" key={post._id}>
                 <PostContent {...post} likedByMe={postsLikedByMe.includes(post._id)} onUpdate={fetchPosts} />
               </div>
             )) : (
-              <div className="p-10 text-center text-nexusLightGray">No posts yet</div>
+              <div className="p-10 text-center text-nexusLightGray border-t border-nexusBorder">No posts yet</div>
             )}
           </div>
         </div>

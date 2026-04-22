@@ -5,6 +5,7 @@ import {authOptions} from "./auth/[...nextauth]";
 import Like from "../../models/Like";
 import Follower from "../../models/Follower";
 import Block from "../../models/Block";
+import User from "../../models/User";
 
 export default async function handler(req, res) {
   await initMongoose();
@@ -55,6 +56,16 @@ export default async function handler(req, res) {
         searchFilter = {author, parent: null};
         if (blockedIds.some(bid => bid.toString() === author)) {
           return res.json({posts: [], idsLikedByMe: []});
+        }
+        
+        if (author !== session.user.id) {
+          const authorUser = await User.findById(author);
+          if (authorUser?.isPrivate) {
+            const isFollowing = await Follower.findOne({source: session.user.id, destination: author});
+            if (!isFollowing) {
+              return res.json({posts: [], idsLikedByMe: []});
+            }
+          }
         }
       } else if (parent) {
         searchFilter = {parent, author: { $nin: blockedIds }};
